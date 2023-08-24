@@ -2,3 +2,16 @@ selenium >= 4.0.0
 robotframework >= 3.2.2
 robotframework-pythonlibcore >= 2.2.1
 pyautogui
+selenium==3.141.0
+pytz==2022.1
+airtest==1.2.6
+pynput
+loguru
+redis
+pyautogui
+jsonpath
+SQLAlchemy==1.4.40
+PyMySQL==1.0.2
+APScheduler==3.9.1
+PyAutoGUI==0.9.53
+pyperclip

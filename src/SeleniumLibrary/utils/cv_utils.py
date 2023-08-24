@@ -2,6 +2,8 @@
 
 import time
 import os
+import base64
+from robot.api import logger
 from airtest.core.helper import G
 from airtest import aircv
 from airtest.aircv import get_resolution
@@ -66,7 +68,7 @@ class Scroll:
     def scroll_SlideBar(self):
         self.cls.execute_script("document.querySelector(’.san-sheet’).scrollTo(0,500)")
 
-def loop_find(query, driver=None, timeout=10, threshold=None, interval=0.5, intervalfunc=None):
+def loop_find(query,img_pth, driver=None, timeout=10, threshold=None, interval=0.5, intervalfunc=None):
     start_time = time.time()
     while True:
         screen = driver.screenshot()
@@ -78,7 +80,7 @@ def loop_find(query, driver=None, timeout=10, threshold=None, interval=0.5, inte
                 query.threshold = threshold
             match_pos = query.match_in(screen)
             if match_pos:
-                try_log_screen(screen)
+                # try_log_screen(img_pth)
                 return match_pos
 
         if intervalfunc is not None:
@@ -86,24 +88,30 @@ def loop_find(query, driver=None, timeout=10, threshold=None, interval=0.5, inte
 
         # 超时则raise，未超时则进行下次循环:
         if (time.time() - start_time) > timeout:
-            try_log_screen(screen)
+            try_log_screen(img_pth)
             raise TargetNotFoundError('Picture %s not found in screen' % query)
         else:
             time.sleep(interval)
 
+# def try_log_screen(screen=None,img_pth=None):
+#     if not ST.LOG_DIR:
+#         return
+#     if screen is None:
+#         screen = G.DEVICE.snapshot()
+#     filename = "%(time)d.jpg" % {'time': time.time() * 1000}
+#     filepath = os.path.join(ST.LOG_DIR, filename)
+#     aircv.imwrite(filepath, screen)
+#     return filename
 
-def try_log_screen(screen=None):
-    if not ST.LOG_DIR:
-        return
-    if screen is None:
-        screen = G.DEVICE.snapshot()
-    filename = "%(time)d.jpg" % {'time': time.time() * 1000}
-    filepath = os.path.join(ST.LOG_DIR, filename)
-    aircv.imwrite(filepath, screen)
-    return filename
+def try_log_screen( img_pth):
+    logger.info(
+            '</td></tr><tr><td colspan="3">'
+            '<img alt="screenshot" class="tag_path" '
+            f'src="data:image/png;base64,{base64.b64encode(open(img_pth, "rb").read()).decode()}" width="100px">',
+            html=True,
+    )
 
-
-def loop_find_pro(query, driver=None, timeout=10, threshold=None, interval=0.5, intervalfunc=None, screen=None):
+def loop_find_pro(query, img_pth, driver=None, timeout=10, threshold=None, interval=0.5, intervalfunc=None, screen=None):
     '''
     :param query:
     :param driver:
@@ -124,7 +132,7 @@ def loop_find_pro(query, driver=None, timeout=10, threshold=None, interval=0.5, 
                 query.threshold = threshold
             match_pos = query.match_in(screen)
             if match_pos:
-                try_log_screen(screen)
+                # try_log_screen(img_pth)
                 return match_pos
 
         if intervalfunc is not None:
@@ -132,7 +140,7 @@ def loop_find_pro(query, driver=None, timeout=10, threshold=None, interval=0.5, 
 
         # 超时则raise，未超时则进行下次循环:
         if (time.time() - start_time) > timeout:
-            try_log_screen(screen)
+            try_log_screen(img_pth)
             raise TargetNotFoundError('Picture %s not found in screen' % query)
         else:
             time.sleep(interval)

@@ -12,7 +12,7 @@ MANIFEST
 *.egg
 chromedriver.log
 .pytest_cache
-
+.DS_Store
 dist
 build
 .pabotsuitenames

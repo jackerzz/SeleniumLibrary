@@ -2,61 +2,28 @@ import os
 import base64
 import time
 import cv2
+import random
+import  pymysql
+
+import pyautogui, sys
 from pynput.keyboard import Key
 from pynput.mouse import Button
 
 from airtest.core.settings import Settings as ST
 from airtest import aircv
 
-
 from airtest.aircv import get_resolution
 from airtest.core.error import TargetNotFoundError
-from airtest.core.cv import Template
 
 from robot.utils import get_link_path
 from selenium.webdriver import ActionChains
 from SeleniumLibrary.base import LibraryComponent, keyword
 from SeleniumLibrary.utils.cv_utils import Scroll
 from SeleniumLibrary.utils.cv_utils import loop_find, loop_find_pro
-import pyautogui
-
+from SeleniumLibrary.utils.cv import Template
 class ExploreLearn(LibraryComponent):
-
     @keyword
-    def click_close(self):
-        buttonx,buttony=pyautogui.locateCenterOnScreen('D:\\number_smart\\test_bi\\tag\\reportlist\\305.png') #寻找图片
-        pyautogui.click(buttonx,buttony)
-        print(buttonx,buttony)
-
-    @keyword
-    def upload_file(self,filepath):
-        pyautogui.write(filepath)
-        time.sleep(2)
-        pyautogui.press('enter',2)
-
-    @keyword
-    def switch_windows(self,index):
-        handles = self.driver.window_handles
-        self.driver.switch_to.window(handles[index])
-
-    @keyword
-    def mouse_drag(self,img_pth, threshold, rgb, dx,dy,file_path=None):
-        v = Template(img_pth, threshold=threshold, rgb=rgb)
-        if isinstance(v, Template):
-            _pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
-        else:
-            _pos = v
-        x, y = _pos
-        pos = self._get_left_up_offset()
-        pos = (pos[0] + x, pos[1] + y)
-        self._move_to_pos(pos)
-        if file_path:
-            self.screenshot(file_path, _pos)
-        pyautogui.moveTo(x,y,0.1)
-        pyautogui.dragTo(dx,dy,2,pyautogui.easeOutQuad)
-
-    @keyword
-    def mouse_move(self,img_pth, threshold, rgb, dx,dy,file_path=None):
+    def mouse_move(self,img_pth, threshold:float, rgb:bool, dx:int,dy:int,file_path=None):
         '''
         支持通过鼠标点击目标，动滑动至制定位置
         仅支持：线性的滑动，
@@ -64,7 +31,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+            _pos = loop_find(v, img_pth,timeout=ST.FIND_TIMEOUT, driver=self)
         else:
             _pos = v
         x, y = _pos
@@ -78,6 +45,7 @@ class ExploreLearn(LibraryComponent):
         self.mouse.move(dx,dy)
         time.sleep(1)
         self.mouse.release(Button.left)
+
 
     @keyword
     def search_menu(self,search,img_pth, threshold, rgb, file_path=None):
@@ -126,7 +94,7 @@ class ExploreLearn(LibraryComponent):
         slider = self.driver.find_element_by_xpath('//*[@id="slideVerify"]/div[3]/div/div')
         self.move_to_gap(slider, track)
 
-    def _touch_pro_dorado(self, img_pth, threshold, rgb, screen_path, file_path=None):
+    def _touch_pro_dorado(self, img_pth, threshold:float, rgb:bool, screen_path:str, file_path=None):
         '''
         仅登陆dorado 使用目前
         :param img_pth
@@ -138,7 +106,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find_pro(v, timeout=ST.FIND_TIMEOUT, driver=self, screen=aircv.imread(screen_path))
+            _pos = loop_find_pro(v,img_pth, timeout=ST.FIND_TIMEOUT, driver=self, screen=aircv.imread(screen_path))
         else:
             _pos = v
         x, y = _pos
@@ -149,12 +117,11 @@ class ExploreLearn(LibraryComponent):
             self.screenshot(file_path, _pos)
         self._click_current_pos()
         time.sleep(1)
-        # self._embed_to_log_as_base64(img_pth,file_path,800)
-        self._embed_to_log_as_file(img_pth, file_path, 800)
+        self._embed_to_log_as_base64(img_pth, screen_path, 800)
         return _pos
 
     @keyword
-    def touch(self, img_pth, threshold, rgb, file_path=None):
+    def touch(self, img_pth, threshold:float, rgb:bool, file_path=None):
         '''
         # 点击目标图片（小图片）
         :param img_pth:
@@ -165,7 +132,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v=Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+            _pos = loop_find(v, img_pth,timeout=ST.FIND_TIMEOUT, driver=self)
         else:
             _pos = v
         x, y = _pos
@@ -182,7 +149,7 @@ class ExploreLearn(LibraryComponent):
 
 
     @keyword
-    def touch_keyboard_del(self, img_pth, threshold,rgb=True,file_path=None, is_double=False):
+    def touch_keyboard_del(self, img_pth, threshold:float, rgb:bool,file_path=None, is_double=False):
         '''
         # 支持双击删除选项框内容
         :param img_pth:
@@ -193,7 +160,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v=Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+            _pos = loop_find(v, img_pth,timeout=ST.FIND_TIMEOUT, driver=self)
         else:
             _pos = v
         x, y = _pos
@@ -208,7 +175,7 @@ class ExploreLearn(LibraryComponent):
         return _pos
 
     @keyword
-    def touch_keyboard(self, img_pth, threshold, rgb, keyboard, file_path=None, enter=None, is_double=False):
+    def touch_keyboard(self, img_pth, threshold:float, rgb:bool, keyboard:str, file_path=None, enter=None, is_double=False):
         '''
         操作键盘输入文字
         :param img_pth:    目标截图
@@ -222,7 +189,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+            _pos = loop_find(v, img_pth, timeout=ST.FIND_TIMEOUT, driver=self)
         else:
             _pos = v
         x, y = _pos
@@ -238,7 +205,7 @@ class ExploreLearn(LibraryComponent):
         return _pos
 
     @keyword
-    def touch_pro(self, img_pth, threshold, rgb, screen_path, file_path=None):
+    def touch_pro(self, img_pth, threshold:float, rgb:bool, screen_path:str, file_path=None):
         '''
         仅登陆dorado 使用目前
         :param img_pth
@@ -250,7 +217,7 @@ class ExploreLearn(LibraryComponent):
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
-            _pos = loop_find_pro(v, timeout=ST.FIND_TIMEOUT, driver=self, screen=aircv.imread(screen_path))
+            _pos = loop_find_pro(v,img_pth, timeout=ST.FIND_TIMEOUT, driver=self, screen=aircv.imread(screen_path))
         else:
             _pos = v
         x, y = _pos
@@ -265,14 +232,14 @@ class ExploreLearn(LibraryComponent):
         return _pos
 
     @keyword
-    def assert_template(self, img_pth, threshold, rgb, msg=""):
+    def assert_template(self, img_pth, threshold:float, rgb:bool, msg=""):
         '''
         仅针对图片，断言当前操作后的结果可符合预期；判断页面上的相似度比较高的比如
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
             try:
-                pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+                pos = loop_find(v, img_pth,timeout=ST.FIND_TIMEOUT, driver=self)
             except TargetNotFoundError:
                 raise AssertionError("Target template not found on screen.")
             else:
@@ -281,14 +248,14 @@ class ExploreLearn(LibraryComponent):
             raise AssertionError("args is not a template")
 
     @keyword
-    def assert_existing_error(self, img_pth, threshold, rgb, msg=""):
+    def assert_existing_error(self, img_pth, threshold:float, rgb:bool, msg=""):
         '''
         仅针对图片，断言当前操作后的结果可符合预期；判断页面上的相似度比较高的比如
         '''
         v = Template(img_pth, threshold=threshold, rgb=rgb)
         if isinstance(v, Template):
             try:
-                pos = loop_find(v, timeout=ST.FIND_TIMEOUT, driver=self)
+                pos = loop_find(v, img_pth,timeout=ST.FIND_TIMEOUT, driver=self)
                 if pos:
                     raise AssertionError("页面存在异常")
 
@@ -433,3 +400,74 @@ class ExploreLearn(LibraryComponent):
         for x in tracks:
             ActionChains(self.driver).move_by_offset(xoffset=x, yoffset=0).perform()
         ActionChains(self.driver).release(slider).perform()
+
+    @keyword
+    def switch_windows(self, index):
+        handles = self.driver.window_handles
+        self.driver.switch_to.window(handles[index])
+
+    @staticmethod
+    def getrate_random():
+        code = random.randrange(10 ** (4-1), 10**4)
+        return 'TEST0000'+str(code)
+
+    # @keyword
+    # def mouse_scroll(self, pixel):
+    #     pyautogui.scroll(pixel)
+
+    @keyword
+    def kayboard_operat(self, operat):
+        pyautogui.press(operat)
+
+    @keyword
+    def double_click(self):
+        pyautogui.click(clicks=2)
+
+    @keyword
+    def delete_all(self):
+        pyautogui.hotkey('ctrl', 'a')
+        time.sleep(2)
+        pyautogui.press('delete', 2)
+
+    @keyword
+    def db_del(self,sql):
+        # 打开数据库连接
+        db = pymysql.connect(
+                        host = '121.41.94.47',
+                        port = 33061,
+                        user = 'root',
+                        password = 'huansi.net',
+
+                        )
+
+        # 使用cursor()方法获取操作游标
+        cursor = db.cursor()
+
+        # SQL 删除语句
+        db_sql = sql
+        try:
+            # 执行SQL语句
+            cursor.execute(db_sql)
+            db.commit()
+        except:
+            # 发生错误时回滚
+            db.rollback()
+
+        # 关闭连接
+        db.close()
+
+
+    @keyword
+    def locus(self):
+        print('Press Ctrl-C to quit.')
+        try:
+            # while True:
+                x, y = pyautogui.position()
+                positionStr = 'X: ' + str(x).rjust(4) + ' Y: ' + str(y).rjust(4)
+                print(positionStr, end='')
+                print(len(positionStr), end='', flush=True)
+        except KeyboardInterrupt:
+            print('\n')
+
+
+
